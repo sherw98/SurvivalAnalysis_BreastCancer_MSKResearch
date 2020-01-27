@@ -1,6 +1,7 @@
 # Survival Analysis Project at MSK 2019 Summer
 
-##Full App
+Full App
+
 This is the full app that needs the supplement of data owned by Memorial Sloan Kettering. Therefore, by itself, it does not work. 
 However the example output is shown in the pdfs in the file called "Smaple Output". 
 
