@@ -14,3 +14,11 @@ The second tab is "Kaplan meier Curve" that allows one to select one variable of
 The third tab is "Cox Model" that allows users to customize their model and calcualted the corresponded probability estimation by implementing their own risk factors. Among the 7 potential variables, users can select any variables to build a cox regression model. THe "Set to Default" button allows them to clear their choices and the model goes back to the defualt that contains mutation status, age, tumor stage, and number of nodes. After a cox model is formed or keepng as the default, users can then calculate survival probability after implementing the time from 0 to 200 months and their own conditions regarding to mutation status, age, etc. The output, AIC, and survival probability plot are also shown. 
 
 The fourth tab is "Weibull Regression Model" which has the same feature as the previous tab, just with a different model. 
+
+*******************************************************************
+
+App.R
+
+This app is an simplified version of the Full App. The app is uploaded to the RShiny server: https://sherw98.shinyapps.io/SurvivalProbability/. 
+In the model, the independent variables are mutation status, age, tumor stage, and number of nodes, while the dependent variable could be selected by users among the 7 potential outcomes. 
+In addition to Cox and Weibull models, the log-normal model was also included.  
