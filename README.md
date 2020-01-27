@@ -1,5 +1,8 @@
 # Survival Analysis Project at MSK 2019 Summer
 
+This project was complted in 2019 Summer at Memorial Sloan Kettering under the guidance of Dr. Jaya Satagopan. The final presentation can be found here: https://drive.google.com/file/d/11t1bamY9APsyUwnyksTTG2D1ACbsOBDV/view?usp=sharing 
+
+**************************************************************
 Full App
 
 This is the full app that needs the supplement of data owned by Memorial Sloan Kettering. Therefore, by itself, it does not work. 
