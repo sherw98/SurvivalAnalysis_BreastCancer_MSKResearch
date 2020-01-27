@@ -1,1 +1,1352 @@
+#########Current Version
+
+library(shiny)
+library(datasets)
+library(survival)
+library(survminer)
+library(readxl)
+library(expss)
+library(ggplot2)
+library(gtsummary)
+library(dplyr)
+library(shinythemes)
+library(shinyjs)
+#library(shinyWidgets)
+
+
+
+ui = navbarPage(
+  "Survival Analysis",
+  tabPanel(
+    "Summary Statistics",
+    sidebarPanel(
+      useShinyjs(),
+      helpText("The default table is viewed by Mutation Status, use the following button to display this table:"),
+      actionButton("SSGen1", "Display Table", style = "color: papayawhip; background-color:#003366"),
+      br(), br(),
+      helpText("If wish to view the table by other variables, 
+               use the following button to construct a customized table:"),
+      selectInput("SS1", "View it by", c("Mutation Status", "Age", "Tumor Stage", "Node Involvement", "ER Status", 
+                                         "Histology", "Chemotherapy", "Tamoxifen")),
+      actionButton("SSGen2", "Display Customized Table", style = "color: papayawhip; background-color:#003366"),
+      br(), br(),
+      helpText("Generate barplot based on your input below:"),
+      selectInput("SS2", "Variable to Compare", c("Mutation Status", "Age", "Tumor Stage", "Node Involvement",
+                                                  "ER Status", "Histology", "Chemotherapy", "Tamoxifen")),
+      selectInput("SS3", "View it by", c("Mutation Status", "Age", "Tumor Stage", "Node Involvement",
+                                         "ER Status", "Histology", "Chemotherapy", "Tamoxifen",
+                                         "Ipsilateral Recurrence (IBTR)", "Distant Recurrence (DR)", 
+                                         "Contralateral Recurrence (CR)", "Disease Free Survival", 
+                                         "Dead to Breast Cancer (DOBC)", "Overall Survival")),
+      actionButton("SSGen3", "Display Barplot", style = "color: papayawhip; background-color:#003366")
+    ),
+    
+    mainPanel(
+      gt_output("table1"),
+      br(), br(),
+      gt_output("table2"),
+      br(), br(),
+      plotOutput("graph1")
+    )
+  ),
+
+  tabPanel(
+    "Kaplan Meier Curve",
+    sidebarPanel(
+      id = "panel2",
+      useShinyjs(),
+      helpText("Fit a Kaplain Meier Curve for a specific variable for differnt survival conditions"),
+      selectInput("KMVar", "Variable", c("Mutation Status", "Age", "Tumor Stage", "Node Involvement",
+                                         "ER Status", "Chemotherapy", "Tamoxifen")),
+      selectInput("KMCond", "Survival Conditions", c("Ipsilateral Recurrence (IBTR)", "Distant Recurrence (DR)", 
+                                                     "Contralateral Recurrence (CR)",
+                                                     "Disease Free Survival", "Dead to Breast Cancer (DOBC)",
+                                                     "Overall Survival")),
+      actionButton("Curve","Generate", style = "color: papayawhip; background-color:#003366"),
+      br(),
+      br(),
+      uiOutput("YHei"),
+      uiOutput("XLen"),
+      br(),
+      br(),
+      actionButton("Table","Generate the entire risk table", style = "color: papayawhip; background-color:#003366")),
+      mainPanel(
+        textOutput("KMFitHelp"),
+        br(),
+        verbatimTextOutput("KMFit"),
+        plotOutput("KMPlot"),
+        textOutput("note"),
+        br(),
+        verbatimTextOutput("Risk"))
+  ),
+  tabPanel(
+    "Cox Model",
+    tabsetPanel(
+      id = "setPanel1",
+      type = "tabs",
+      tabPanel(
+        "Fit a Customized Model",
+        sidebarPanel(id = "panel3",
+                     width = 4,
+                     selectInput("outcome", "Outcome", c("Dead to Breast Cancer (DOBC)", "Ipsilateral Recurrence (IBTR)", 
+                                                         "Contralateral Recurrence (CR)", "Distant Recurrence (DR)", 
+                                                         "Disease Free Survival", "Overall Survival")),
+                     selectInput("var1", "Variable 1", c("Mutation Status", "Age", "Tumor Stage", "Node Involvement",
+                                                         "ER Status", "Chemotherapy", "Tamoxifen")),
+                     selectInput("var2", "Variable 2", c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement",
+                                                         "ER Status", "Chemotherapy", "Tamoxifen")),
+                     
+                     uiOutput("v3"),
+                     uiOutput("v4"),
+                     uiOutput("v5"),
+                     uiOutput("v6"),
+                     uiOutput("v7"),
+                     actionButton("Fit", "Generate the Model", style = "color: papayawhip; background-color:#003366"),
+                     br(),
+                     br(),
+                     actionButton("Back", "Set to Default", style = "color: papayawhip; background-color:#003366"),
+                     br(),
+                     br(),
+                     actionButton("Back3", "Same as Weibull Model", style = "color: papayawhip; background-color:#003366")
+        )
+      ),
+      tabPanel(
+        "Survival Probability Estimation",
+        sidebarPanel(id = "panel4",
+                     width = 4,
+                     textInput("t", "Time (must be within the given data's range", value = 60),
+                     sliderInput("x1", "Mutation Status (0-No Mutation, 1-Mutation)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("x2", "Age (0-Over 50, 1-Under 50)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("x3", "Tumor Stage (0-Stage 1, 1-Stage 2)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("x4", "Node (0-No Node, 1-Yes Node)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("x5", "ER (0 - Negative, 1 - Positive)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("x6", "Chemotherapy (0 - No, 1 - Had)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("x7", "Tamoxifen (0 - No, 1 - Had)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     actionButton("Generate", "Estimation", style = "color: papayawhip; background-color:#003366"),
+                     uiOutput("YHei1"),
+                     uiOutput("XLen1")
+        )
+      )
+    ),
+    mainPanel( 
+      helpText("The default cox model has default outcome as Dead to Breast Cancer and 
+               default variables: Mutation Status, Age, Tumor Stage, and Node Invovlement. 
+               
+               If wish to customize it, you can build the new model in the first column.
+               Otherwise, the survival probability calculation will use the default."),
+      br(),
+      textOutput("HelpModel"),
+      verbatimTextOutput("Model"),
+      br(),
+      textOutput("AIC"),
+      textOutput("PH"),
+      br(),
+      br(),
+      textOutput("Result"),
+      br(),
+      textOutput("HelpGraph"),
+      plotOutput("Graph"),
+      br(),
+      textOutput("Note"))
+  ),
+  
+  tabPanel(
+    "Weibull Regression Model",
+    tabsetPanel(
+      type = "tabs",
+      id = "setPanel2",
+      tabPanel(
+        "Fit a Customized Model",
+        
+        sidebarPanel(id = "panel5",
+                     width = 4,
+                     selectInput("outcome1", "Outcome", c("Dead to Breast Cancer (DOBC)", "Ipsilateral Recurrence (IBTR)", 
+                                                          "Distant Recurrence (DR)", "Overall Survival")),
+                     selectInput("VAR1", "Variable 1", c("Mutation Status", "Age", "Tumor Stage", "Node Involvement",
+                                                         "ER Status", "Chemotherapy", "Tamoxifen")),
+                     selectInput("VAR2", "Variable 2", c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement",
+                                                         "ER Status", "Chemotherapy", "Tamoxifen")),
+                     uiOutput("V3"),
+                     uiOutput("V4"),
+                     uiOutput("V5"),
+                     uiOutput("V6"),
+                     uiOutput("V7"),
+                     actionButton("Fit2", "Generate the Model", style = "color: papayawhip; background-color:#003366"),
+                     br(),
+                     br(),
+                     actionButton("Back1", "Set to Default", style = "color: papayawhip; background-color:#003366"),
+                     br(),
+                     br(),
+                     actionButton("Back2", "Same as Cox Model", style = "color: papayawhip; background-color:#003366")
+        )
+      ),
+      tabPanel(
+        "Survival Probability Estimation",
+        sidebarPanel(id = "panel6",
+                     width = 4,
+                     textInput("tt", "Time (must be within the given data's range", value = 60),
+                     sliderInput("X1", "Mutation Status (0-No Mutation, 1-Mutation)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("X2", "Age (0-Over 50, 1-Under 50)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("X3", "Tumor Stage (0-Stage 1, 1-Stage 2)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("X4", "Node (0-No Node, 1-Yes Node)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("X5", "ER (0 - Negative, 1 - Positive)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("X6", "Chemotherapy (0 - No, 1 - Had)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     sliderInput("X7", "Tamoxifen (0 - No, 1 - Had)",
+                                 min = 0, max = 1, value = 0, step = 1, tick = FALSE),
+                     actionButton("Generate1", "Estimation", style = "color: papayawhip; background-color:#003366"),
+                     uiOutput("YHei2"),
+                     uiOutput("XLen2")
+        )), 
+        mainPanel(
+          helpText("The default Weibull model has default outcome as Dead to Breast Cancer and 
+               default variables: Mutation Status, Age, Tumor Stage, and Node Invovlement. 
+               
+               If wish to customize it, you can build the new model in the first column.
+               Otherwise, the survival probability calculation will use the default."),
+          br(),
+          textOutput("HelpW"),
+          verbatimTextOutput("ModelW"),
+          br(),
+          textOutput("AIC1"),
+          br(),
+          textOutput("HelpModel1"),
+          verbatimTextOutput("Model1"),
+          br(),
+          br(),
+          textOutput("Result1"),
+          br(),
+          textOutput("HelpGraph1"),
+          plotOutput("Graph1"),
+          plotOutput("Graph01"),
+          br(),
+          textOutput("Note1"),
+          HTML("<br><br><br>")
+        )
+    )
+  )
+  ,
+  
+  tags$head(
+    tags$style(type = 'text/css', 
+               HTML('.navbar { background-color: #003366;}
+                          .navbar-default .navbar-brand{color: papayawhip;}
+                          .tab-panel{ background-color: white; color: #003366}
+                          .navbar-default .navbar-nav > .active > a, 
+                          .navbar-default .navbar-nav > .active > a:focus, 
+                          .navbar-default .navbar-nav > .active > a:hover {
+                                color: #003366;
+                                background-color: papayawhip;
+                            }
+                     .navbar-default .navbar-nav > li > a:focus, 
+                     .navbar-default .navbar-nav > li > a:hover{color: papayawhip}
+                     
+                    '),
+               HTML('
+                    .well{min-height:20px;padding:19px;margin-bottom:20px;
+                    background-color:white;border:1px solid #papaywhip;border-radius:4px;
+                    -webkit-box-shadow:inset 0 1px 1px rgba(0,0,0,.05);
+                    box-shadow:inset 0 1px 1px rgba(0,0,0,.05)}'),
+               HTML(' .nav-tabs > li.active > a, .nav-tabs > li.active > a:focus, 
+                      .nav-tabs > li.active > a:hover {
+                      color: #003366; background-color: papayawhip;
+                    }
+                    a{color:#003366;text-decoration:none}'),
+               HTML('pre{display:block;padding:9.5px;
+                    margin:0 0 10px;font-size:13px;line-height:1.42857143;
+                    color:#003366;word-break:break-all;word-wrap:break-word;
+                    background-color:white;border:transparent;border-radius:4px}
+                    '),
+               HTML('.help-block{display:block;margin-top:5px;margin-bottom:10px;color:#003366}
+                    '),
+               #font color in sidebar and general, used to be black, ex: variable1, variable2
+               HTML('body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:14px;
+                    line-height:1.42857143;color:#003366;background-color:#fff}'),
+               #sliderbutton color 
+               HTML('.irs-slider {
+                    top: 17px;
+                    width: 22px; height: 22px;
+                    border: 1px solid #AAA;
+                    background: papayawhip;
+                    border-radius: 27px;
+                    -moz-border-radius: 27px;
+                    box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+                    cursor: pointer;
+                    }'),
+               HTML('.irs-from, .irs-to, .irs-single {
+                    color: papayawhip;
+                    font-size: 11px; line-height: 1.333;
+                    text-shadow: none;
+                    padding: 1px 3px;
+                    background: #003366;
+                    border-radius: 3px;
+                    -moz-border-radius: 3px;
+                    }
+                    '),
+               HTML('
+                    .irs-min, .irs-max {
+                    color: papayawhip;
+                    font-size: 10px; line-height: 1.333;
+                    text-shadow: none;
+                    top: 0;
+                    padding: 1px 3px;
+                    background: #003366;
+                    border-radius: 3px;
+                    -moz-border-radius: 3px;
+                    }
+                    '),
+               HTML('
+                    .irs-bar {
+                    height: 8px; top: 25px;
+                    border-top: 1px solid #003366;
+                    border-bottom: 1px solid #003366;
+                    background: #003366;
+                    }
+                    .irs-bar-edge {
+                    height: 8px; top: 25px;
+                    width: 14px;
+                    border: 1px solid #003366;
+                    border-right: 0;
+                    background: #003366;
+                    border-radius: 16px 0 0 16px;
+                    -moz-border-radius: 16px 0 0 16px;
+                    }
+                    ')
+               
+    )
+  )
+)
+
+
+
+# Define server logic required to draw a histogram
+server <- function(input, output, session) {
+  
+  Data = read_excel("H:/Biostatistics/Jaya_Sherry/KM Model/Data.xls")
+  #Data Modification 
+  ##Dead to Breast Cancer
+  Data$NDOBC = as.numeric(Data$DOBC)
+  Data$NDOBC[Data$DOBC == 2 | Data$DOBC == 3 | Data$DOBC ==4] = 0
+  
+  ##IBTR 
+  Data$NIBTR = Data$IBTR
+  Data$NIBTR[Data$IBTR == 2] = 0
+  
+  ##Distant Recurrence
+  Data$NTTDR = Data$TTDR
+  Data$NTTDR = as.numeric(Data$NTTDR)
+  
+  Data$NDISTANT = Data$DISTANT
+  Data$NDISTANT[Data$DISTANT == 2] = 0
+  
+  ##Contra Recurrence
+  Data$NCONTRA = Data$CONTRA
+  Data$NCONTRA[Data$CONTRA == 3] = NA
+  Data$NCONTRA[Data$CONTRA == 2] = 0
+  
+  Data$TTCBC = as.numeric(Data$TTCBC)
+  
+  ##Any Disease
+  Data$NANY_DIS = Data$ANY_DIS
+  Data$NANY_DIS[Data$ANY_DIS == 2] = 0
+  
+  ##Overall Survival
+  Data$NDEAD = Data$DEAD
+  Data$NDEAD[Data$DEAD == 2] = 0
+  
+  ##Age
+  Data$NUNDER_50 = Data$UNDER_50
+  Data$NUNDER_50[Data$UNDER_50 == 2] = 0
+  
+  ##Tumor Stage
+  Data$NT_STAGE = Data$T_STAGE
+  Data$NT_STAGE[Data$T_STAGE == 99] = NA
+  Data$NT_STAGE[Data$T_STAGE == 1] = 0
+  Data$NT_STAGE[Data$T_STAGE == 2] = 1
+  
+  ##Any Node
+  Data$NNODE_ANY = as.numeric(Data$NODE_ANY)
+  Data$NNODE_ANY[Data$NODE_ANY == 99] = NA
+  Data$NNODE_ANY[Data$NODE_ANY == 2] = 0
+  table(Data$NNODE_ANY)
+  
+  ##ER Status
+  Data$ER1 = Data$ER2 = as.numeric(Data$ER)
+  Data$ER1[Data$ER == "0"] = 1
+  Data$ER1[Data$ER == "2" | Data$ER == "99"] = 0
+  Data$ER2[Data$ER == "1" | Data$ER == "2"] = 0
+  Data$ER2[Data$ER == "99"] = 1
+  
+ 
+  
+  #Chemo and Tamoxifen
+  Data$CHEMO1 = Data$CHEMO2 = Data$CHEMO
+  Data$CHEMO1[Data$CHEMO == "2" | Data$CHEMO == "99"] = 0
+  Data$CHEMO2[Data$CHEMO == "1" | Data$CHEMO == "2"] = 0
+  Data$CHEMO2[Data$CHEMO == "99"] = 1
+  
+  
+  Data$TAM1 = Data$TAM2 = Data$TAM
+  Data$TAM1[Data$TAM == "2" | Data$TAM == "99"] = 0
+  Data$TAM2[Data$TAM == "1" | Data$TAM == "2"] = 0
+  Data$TAM2[Data$TAM == "99"] = 1
+  
+  
+  #Changes made speicifcally for the table output at the first panel:
+  Data$NER = Data$ER
+  Data$NER[Data$ER == 0] = 1
+  Data$NER[Data$ER == 2] = 0
+  Data$CONTRA1 = Data$CONTRA
+  Data$CONTRA1[Data$CONTRA == 2] = 0
+  
+  Data$Histo = Data$HISTO
+  Data$Histo[Data$HISTO == 3] = 4
+  Data$Histo = as.factor(Data$Histo)
+  levels(Data$Histo) = c("Infiltrating ductal", "Medullary", "Other ductal","Infiltrating lobular" )
+  
+  Data$Chemo = Data$CHEMO
+  Data$Chemo[Data$CHEMO == 2] = 0
+  
+  Data$Tamo = Data$TAM
+  Data$Tamo[Data$TAM == 2] = 0
+  
+  Data$AM = ChangeLevelName(Data$AM, Data$ANY_MUT, "No Mutation", "Mutation", "00")
+  Data$Age = ChangeLevelName(Data$Age, Data$NUNDER_50, "Over 50", "Under 50", "00")
+  Data$Er = ChangeLevelName(Data$Er, Data$NER, "Negative", "Positive", "Unknown")
+  Data$Stage = ChangeLevelName(Data$Stage, Data$T_STAGE, "Stage 1", "Stage 2", "Unknown")
+  Data$Node = ChangeLevelName(Data$Node, Data$NODE_ANY, ">0", "0", "Unknown")
+  Data$Chemo = ChangeLevelName(Data$Chemo, Data$Chemo, "Not Had", "Had", "Unknown")
+  Data$Tamo = ChangeLevelName(Data$Tamo, Data$TAM, "Not Had", "Had", "Unknown")
+  
+  Data$NDOBC1 = ChangeLevelName(Data$NDOBC1, Data$NDOBC, "No Event", "Event", "00")
+  Data$NIBTR1 = ChangeLevelName(Data$NIBTR1, Data$NIBTR, "No Event", "Event", "00")
+  Data$NDISTANT1 = ChangeLevelName(Data$NDISTANT1, Data$NDISTANT, "No Event", "Event", "00")
+  Data$CONTRA1 = ChangeLevelName(Data$CONTRA1, Data$CONTRA1, "No Event", "Event", "Unknown")
+  Data$NANY_DIS1 = ChangeLevelName(Data$NANY_DIS1, Data$NANY_DIS, "No Event", "Event", "00")
+  Data$NDEAD1 = ChangeLevelName(Data$NDEAD1, Data$NDEAD, "No Event", "Event", "00")
+  
+  
+  
+  #A function to match what the user enter to the var names in the data we have,
+  #since this function will be used twice, define the function in global environement
+  detect = function(x){
+    if(x == "Mutation Status"){x = Data$ANY_MUT}
+    else if(x == "Age"){x = Data$NUNDER_50}
+    else if(x == "Tumor Stage"){x = Data$NT_STAGE}
+    else if(x == "Node Involvement"){x = Data$NNODE_ANY}
+    else if(x == "ER Status"){x = Data$ER1}
+    else if(x == "Chemotherapy"){x = Data$CHEMO1}
+    else if(x == "Tamoxifen"){x = Data$TAM1}
+    else if(x == "NULL"){NULL}
+  }
+  
+  #Used in building Model's Event
+  detect1 = function(x){
+    if(x == "Ipsilateral Recurrence (IBTR)"){x = Data$NIBTR}
+    else if(x == "Distant Recurrence (DR)"){x = Data$NDISTANT}
+    else if(x == "Contralateral Recurrence (CR)"){x = Data$NCONTRA}
+    else if(x == "Disease Free Survival"){x = Data$NANY_DIS}
+    else if(x == "Dead to Breast Cancer (DOBC)"){x = Data$NDOBC}
+    else if(x == "Overall Survival"){x = Data$NDEAD}
+  }
+  
+  #Used in building Model's time
+  detect2 = function(x){
+    if(x == "Ipsilateral Recurrence (IBTR)"){x = Data$TTIBTR}
+    else if(x == "Distant Recurrence (DR)"){x = Data$NTTDR}
+    else if(x == "Contralateral Recurrence (CR)"){x = Data$TTCBC}
+    else if(x == "Disease Free Survival"){x = Data$DFS_TIME}
+    else if(x == "Dead to Breast Cancer (DOBC)"){x = Data$SURVIVAL}
+    else if(x == "Overall Survival"){x = Data$SURVIVAL}
+  }
+  
+  #Used in building barplots' legends
+  detect3 = function(x){
+    if(x == "Mutation Status"){x = c("No Mutation", "Have Mutation")}
+    else if(x == "Age"){x = c("Older than 50", "Younger than 50")}
+    else if(x == "Tumor Stage"){x = c("Stage 1", "Stage 2", "Unknown")}
+    else if(x == "Node Involvement"){x = c("No Node", "At Least One Node", "Unknown")}
+    else if(x == "ER Status"){x = c("ER Negative", "ER Positive", "Unknown")}
+    else if(x == "Chemotherapy"){x = c("No Chemotherapy", "Had Chemotherapy", "Unknown")}
+    else if(x == "Tamoxifen"){x = c("No Tamoxifen", "Had Tamoxifen", "Unknown")}
+    else if(x == "Histology"){x = c("Infiltrating ductal", "Medullary", "Other ductal","Infiltrating lobular")}
+    else if(x == "Ipsilateral Recurrence (IBTR)"){x = levels(Data$NIBTR1)}
+    else if(x == "Distant Recurrence (DR)"){x = levels(Data$NDISTANT1)}
+    else if(x == "Contralateral Recurrence (CR)"){x = levels(Data$CONTRA1)}
+    else if(x == "Disease Free Survival"){x = levels(Data$NANY_DIS1)}
+    else if(x == "Dead to Breast Cancer (DOBC)"){x = levels(Data$NDOBC1)}
+    else if(x == "Overall Survival"){x = levels(Data$NDEAD1)}
+    
+  }
+  
+  #Create another matrix to account for missing data to be used in Cox model
+  detect4 = function(x){
+    if(x == "ER Status"){x = Data$ER2}
+    else if(x == "Chemotherapy"){x = Data$CHEMO2}
+    else if(x == "Tamoxifen"){x = Data$TAM2}
+    else{x = rep(0,305)}
+  }
+  
+  #Used in building tables' columns
+  detect5 = function(x){
+    if(x == "Mutation Status"){x = "AM"}
+    else if(x == "Age"){x = "Age"}
+    else if(x == "Tumor Stage"){x = "Stage"}
+    else if(x == "Node Involvement"){x = "Node"}
+    else if(x == "ER Status"){x = "Er"}
+    else if(x == "Chemotherapy"){x = "Chemo"}
+    else if(x == "Tamoxifen"){x = "Tamo"}
+    else if(x == "Histology"){x = "Histo"}
+  }
+  
+  #Used in building barplots for summary statistics and KM Curve
+  detect6 = function(x){
+    if(x == "Mutation Status"){x = Data$ANY_MUT}
+    else if(x == "Age"){x = Data$NUNDER_50}
+    else if(x == "Tumor Stage"){x = Data$Stage}
+    else if(x == "Node Involvement"){x = Data$Node}
+    else if(x == "ER Status"){x = Data$Er}
+    else if(x == "Chemotherapy"){x = Data$Chemo}
+    else if(x == "Tamoxifen"){x = Data$Tamo}
+    else if(x == "Histology"){x = Data$Histo}
+    else if(x == "Ipsilateral Recurrence (IBTR)"){x = Data$NIBTR1}
+    else if(x == "Distant Recurrence (DR)"){x = Data$NDISTANT1}
+    else if(x == "Contralateral Recurrence (CR)"){x = Data$CONTRA1}
+    else if(x == "Disease Free Survival"){x = Data$NANY_DIS1}
+    else if(x == "Dead to Breast Cancer (DOBC)"){x = Data$NDOBC1}
+    else if(x == "Overall Survival"){x = Data$NDEAD1}
+    
+  }
+  
+  detect7 = function (x, slidermatrix, string, nu){
+    if(x != "NULL") {
+      if(x == "Mutation Status"){
+        if(slidermatrix[1] == 1) {x = "mutation carriers"}
+        else if(slidermatrix[1] == 0) {x = "non-mutation carriers"}
+      }
+      else if(x == "Age"){
+        if(slidermatrix[2] == 1) {x = "under age 50"}
+        else if(slidermatrix[2] == 0) {x = "over age 50"}
+      }
+      else if(x == "Tumor Stage"){
+        if(slidermatrix[3] == 1) {x = "with tumor stage 2"}
+        else if(slidermatrix[3] == 0) {x = "with tumor stage 1"}
+      }
+      else if(x == "Node Involvement"){
+        if(slidermatrix[4] == 1) {x = "with lymph node involvement"}
+        else if(slidermatrix[4] == 0) {x = "without lymph node involvement"}
+      }
+      else if(x == "ER Status"){
+        if(slidermatrix[5] == 1) {x = "ER positive"}
+        else if(slidermatrix[5] == 0) {x = "ER negative"}
+      }
+      else if(x == "Chemotherapy"){
+        if(slidermatrix[6] == 1) {x = "had chemotherapy"}
+        if(slidermatrix[6] == 0) {x = "not had chemotherapy"}
+      }
+      else if(x == "Tamoxifen"){
+        if(slidermatrix[7] == 1) {x = "had tamoxifen"}
+        else if(slidermatrix[7] == 0) {x = "not had tamoxifen"}
+      }
+      string = paste(string, x, sep = ", ")
+      return(string)
+    }
+    else(return(NULL))
+  }
+  
+  
+  #Create a function to match the prompt for user input as matrix x based on the previous cox model built 
+  ma = function(x, matrix, num, slidermatrix){
+    if(x == "Mutation Status"){matrix[num] = slidermatrix[1]}
+    else if(x == "Age"){matrix[num] = slidermatrix[2]}
+    else if(x == "Tumor Stage"){matrix[num] = slidermatrix[3]}
+    else if(x == "Node Involvement"){matrix[num] = slidermatrix[4]}
+    else if(x == "ER Status"){matrix[num] = slidermatrix[5]}
+    else if(x == "Chemotherapy"){matrix[num] = slidermatrix[6]}
+    else if(x == "Tamoxifen"){matrix[num] = slidermatrix[7]}
+    else{matrix[num] = 0}
+    
+    return(matrix)
+  }
+  
+  bic = function(x) {
+    if(!is.null(x$df)) {bic = -2 * (x$loglik[2]) + x$df * log(305 - length(x$na.action))}
+    else{bic = -2 * (x$loglik[2]) + length(x$coefficients) * log(x$n)}
+    return(bic)
+  }
+ 
+ 
+  #Code for the first tab: for table, so it has proper level names
+  ChangeLevelName = function(NewColName, OldColName, Level1, Level2, Level3) {
+    NewColName = as.factor(OldColName)
+    if(Level3 == "00") {
+      levels(NewColName) = c(Level1, Level2)
+    }
+    else {
+      levels(NewColName) = c(Level1, Level2, Level3)
+    }
+    return(NewColName)
+  }
+  
+  
+  #Create first a reactive value of KM, the Kaplan Meier Curve, so both action buttons can access it
+    #Then create a reactive value of Cox Model
+  rv = reactiveValues(
+    KM = survfit(Surv(TTIBTR, NIBTR) ~ ANY_MUT, data = Data),
+    TIME = Data$SURVIVAL,
+    EVENT = Data$NDOBC,
+    TIME1 = Data$SURVIVAL,
+    EVENT1 = Data$NDOBC,
+    TIME2 = Data$SURVIVAL,
+    EVENT2 = Data$NDOBC,
+    CoxModel = coxph(Surv(SURVIVAL, NDOBC) ~ ANY_MUT + NUNDER_50 
+                                       + NT_STAGE + NNODE_ANY, data = Data),
+    CoxModelActual = coxph(Surv(SURVIVAL, NDOBC) ~ ANY_MUT + NUNDER_50 
+                           + NT_STAGE + NNODE_ANY, data = Data),
+    var1 = "Mutation Status", var2 = "Age", var3 = "Tumor Stage", var4 = "Node Involvement", var5 = "NULL", var6 = "NULL", var7 = "NULL",
+    WeibullModel = survreg(Surv(SURVIVAL, NDOBC) ~ ANY_MUT + NUNDER_50 
+                           + NT_STAGE + NNODE_ANY, data = Data),
+    WeibullActual = survreg(Surv(SURVIVAL, NDOBC) ~ ANY_MUT + NUNDER_50 
+                           + NT_STAGE + NNODE_ANY, data = Data),
+    VAR1 = "Mutation Status", VAR2 = "Age", VAR3 = "Tumor Stage", VAR4 = "Node Involvement", VAR5 = "NULL", VAR6 = "NULL", VAR7 = "NULL"
+  ) 
+  
+  
+
+
+  
+  #Display the default models, before the obserevents action button, so there is always an model
+  output$Model = renderPrint(summary(rv$CoxModel))
+  output$AIC = renderText({
+    paste("The AIC of this model is", round(AIC(rv$CoxModelActual), 2),
+          "and the BIC of this model is", round(bic(rv$CoxModelActual), 2))
+  })
+  
+
+  output$PH = renderText({
+    paste("The p-value of the PH assumption is", 
+          round(tail(as.vector(cox.zph(rv$CoxModel)$table[,"p"]), n= 1),2), 
+          "and thus the PH assumption of this model is", "met.")
+  })
+  
+  output$ModelW = renderPrint(summary(rv$WeibullModel))
+  output$AIC1 = renderText({
+    paste("The AIC of this model is", round(AIC(rv$WeibullActual), 2),
+          "and the BIC of this model is", round(bic(rv$WeibullActual), 2))
+  })
+  
+  
+  
+  
+  #Initialize Data2 for tabel output at the first panel
+  Data2 = 
+    Data%>%
+    select(AM, Age, Er, Stage, Node, Histo, Chemo, Tamo, 
+           NDOBC1, NIBTR1, NDISTANT1, CONTRA1, NANY_DIS1, NDEAD1)
+  
+
+   #Display the entire table, the first command of this r shiny app
+  observeEvent(input$SSGen1, {
+        
+    summarytable = tbl_summary(Data2, by = "AM", 
+                               label = list("AM" ~ "Mutation Status",
+                                            "Age" ~ "Age", 
+                                            "Er" ~ "Estrogen Status",
+                                            "Stage" ~ "Tumor Stage", 
+                                            "Node" ~ "Lymph Node Invovlement",
+                                            "Histo" ~ "Histology",
+                                            "Chemo" ~ "Chemotherapy", 
+                                            "Tamo" ~ "Tamoxifen", 
+                                            "NDOBC1" ~ "Dead to Breast Cancer (DOBC)", 
+                                            "NIBTR1" ~ "Ipsilateral Recurrence (IBTR)", 
+                                            "NDISTANT1" ~ "Distant Recurrence (DR)", 
+                                            "CONTRA1" ~ "Contralteral Recurrence (CR)", 
+                                            "NANY_DIS1" ~ "Disease Free Survival (AD)", 
+                                            "NDEAD1" ~ "Overall Survival"),
+                               type = list(c("AM", "Age", "Er", "Stage", "Node", "Chemo", "Tamo", 
+                                             "NDOBC1", "NIBTR1", "NDISTANT1", "CONTRA1", "NANY_DIS1", "NDEAD1")~"categorical")) %>%
+      add_p() %>%
+      tab_style_bold_labels() %>%
+      as_gt() %>%
+      tab_spanner(label = "Mutation Status", columns = starts_with("stat_")) %>%
+      tab_header(title = md("**Contingency Tables by Mutation Status**")) %>%
+      tab_options(table.font.size = gt::px(12), 
+                  row.padding = gt::px(3), 
+                  column_labels.font.size = gt::px(13))
+    
+    output$table1 = render_gt(summarytable) 
+    toggle("table1")
+  })
+  
+  #Output customized table:
+  observeEvent(input$SSGen2, {
+    vas = detect5(input$SS1)
+    summarytable = tbl_summary(Data2, by = vas, 
+                               label = list("AM" ~ "Mutation Status",
+                                            "Age" ~ "Age", 
+                                            "Er" ~ "Estrogen Status",
+                                            "Stage" ~ "Tumor Stage", 
+                                            "Node" ~ "Lymph Node Invovlement", 
+                                            "Histo" ~ "Histology",
+                                            "Chemo" ~ "Chemotherapy", 
+                                            "Tamo" ~ "Tamoxifen", 
+                                            "NDOBC1" ~ "Dead to Breast Cancer (DOBC)", 
+                                            "NIBTR1" ~ "Ipsilateral Recurrence (IBTR)", 
+                                            "NDISTANT1" ~ "Distant Recurrence (DR)", 
+                                            "CONTRA1" ~ "Contralteral Recurrence (CR)", 
+                                            "NANY_DIS1" ~ "Disease Free Survival (AD)", 
+                                            "NDEAD1" ~ "Overall Survival"),
+                               type = list(c("AM", "Age", "Er", "Stage", "Node", "Chemo", "Tamo", 
+                                             "NDOBC1", "NIBTR1", "NDISTANT1", "CONTRA1", "NANY_DIS1", "NDEAD1")~"categorical")) %>%
+      add_p() %>%
+      tab_style_bold_labels() %>%
+      as_gt() %>%
+      tab_spanner(label = input$SS1, columns = starts_with("stat_")) %>%
+      tab_header(title = md(sprintf("**Customized Contingency Tables by %s**", input$SS1))) %>%
+      tab_options(table.font.size = gt::px(12), 
+                  row.padding = gt::px(3), 
+                  column_labels.font.size = gt::px(13)) 
+    
+    
+    output$table2 = render_gt(summarytable)
+    toggle("table2")
+  })
+  
+  observeEvent(input$SSGen3, {
+    var1 = input$SS3
+    var2 = input$SS2
+    
+    varx = detect6(var1)
+    vary = detect6(var2)
+    
+    labx = detect3(var1)
+    laby = detect3(var2)
+    
+    output$graph1 = renderPlot({
+      ggplot(Data, aes(x = as.factor(varx), fill = as.factor(vary))) + 
+        geom_bar(position = "dodge")+
+        labs(x = var1, y = "Counts", fill = var2) +
+        scale_x_discrete(labels = labx) +
+        
+        ggtitle(paste("Barplot by", var1, "and", var2, "\n")) +
+        theme(
+          plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+          axis.title = element_text(size = 14),
+          legend.title = element_text(size = 14),
+          axis.text = element_text(size = 12),
+          legend.text = element_text(size = 12), 
+          panel.background = element_rect(fill = "white"),
+          panel.border = element_rect(colour = "black", fill=NA)
+        ) + 
+        geom_text(stat='count', aes(label= ..count..), 
+                  vjust = -0.5, position = position_dodge(width = 1)) +
+        scale_fill_manual(values = c("#FF9933", "#003366", "#99cccc", "#CCCCCC"), labels = laby)
+    })
+  })
+
+
+  
+  #Output of the first column
+  observeEvent(input$Curve, {
+    #initialize var
+    var = input$KMVar
+    #call function and match the variable in the Data.xls
+    variable = detect6(var)
+    
+    #Call function detect2 and determine the survival condition to use
+    cond = input$KMCond
+    
+    Event = detect1(cond)
+    Time = detect2(cond)
+    
+    #Generate the KM Curve and display this funciton in the main panel
+    rv$KM = survfit(Surv(Time, Event) ~ variable, data = Data)
+    output$KMFitHelp = renderText(paste("The Kaplan Meier Curve is:"))
+    output$KMFit = renderPrint(rv$KM)
+    
+    
+    output$YHei = renderUI({
+      sliderInput("Height", "Y-axis Length", min = 0, max = 1, step = 0.1, value = c(0,1))
+    })
+    output$XLen = renderUI({
+      sliderInput("Length", "X-axis Length", min = 0, max = 230, step = 1, value = c(0,230))
+    })
+    
+    
+    
+    
+    # KMP$plot = KMP$plot + geom_hline(yintercept = c(0.5, 0.75), linetype = "dashed") 
+    
+    output$KMPlot = renderPlot({
+      KMP = ggsurvplot(
+      rv$KM, risk.table = TRUE, risk.table.pos = "in", main = paste("KM Curve for", cond, "by", var),
+      xlab = paste("Time to", cond), ylab = "Survival Probability", ylim = input$Height, xlim = input$Length,
+      legend.labs = detect3(var), legend = "top", font.legend = 13, font.x = 14, font.y = 14,
+      palette = c("#003366", "#FF9933", "#99cccc"), break.x.by = 25 )
+      
+      KMP$plot = KMP$plot + geom_hline(yintercept = c(0.5, 0.75), linetype = "dashed") 
+      
+      KMP
+      })
+    # plot(rv$KM, main = paste("KM Curve for", cond, "by", var), xlab = paste("Time to", cond),
+    #      ylab = "Survival Probability", col = c("blue", "red", "orange"), lty = c(3,2,1), mark.time = TRUE,
+    #      ylim = input$Height, xlim = input$Length)
+    # legend("bottomright", detect3(var), fill = c("blue", "red", "orange"))
+    
+    output$note = renderText("Use the x and y axises at the side to adjust the scale of the graph.")
+    
+    
+  })
+  
+  observeEvent(input$Table, {
+    output$Risk = renderPrint(summary(rv$KM))
+    toggle("Risk")
+  })
+
+ 
+  
+  #Set the variables to be reactive, because if the previous variable has already been input
+  #as NULL, then the code will not allow inputs into the rest of the variables. 
+  #Probability can find a way to simplify the following codes (fewer repetitions), we shall see.
+  
+  var3 = reactive({
+    if(input$var2 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  var4 = reactive({
+    if(input$var3 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  var5 = reactive({
+    if(input$var4 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  var6 = reactive({
+    if(input$var5 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  var7 = reactive({
+    if(input$var6 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  
+  #Set the output to be as restricted above
+  output$v3 = renderUI({selectInput("var3", "Variable 3", var3())})
+  output$v4 = renderUI({selectInput("var4", "Variable 4", var4())})
+  output$v5 = renderUI({selectInput("var5", "Variable 5", var5())})
+  output$v6 = renderUI({selectInput("var6", "Variable 6", var6())})
+  output$v7 = renderUI({selectInput("var7", "Variable 7", var7())})
+  
+  
+  
+  
+  #The output for the first column, it will output the new cox model 
+  #after user decides which vars to include
+  observeEvent(input$Fit, {
+    rv$EVENT = detect1(input$outcome)
+    rv$TIME = detect2(input$outcome)
+    
+    rv$var1 = input$var1
+    rv$var2 = input$var2
+    rv$var3 = input$var3
+    rv$var4 = input$var4
+    rv$var5 = input$var5
+    rv$var6 = input$var6
+    rv$var7 = input$var7
+    
+
+    #Create a matrix to account for every var without missing data
+    Variable = matrix(c(detect(rv$var1), detect(rv$var2), detect(rv$var3), detect(rv$var4), detect(rv$var5), 
+                       detect(rv$var6), detect(rv$var7)), nrow = 305 )
+    #With missing data
+    Missing = matrix(c(detect4(rv$var1), detect4(rv$var2), detect4(rv$var3), detect4(rv$var4), detect4(rv$var5), 
+                       detect4(rv$var6), detect4(rv$var7)), nrow = 305)
+  
+    #tell the actual model not to include the missing matrix if the missing matrix is consisted of only 0s
+    if(all(colSums(Missing) == 0)) {
+      rv$CoxModelActual = coxph(Surv(rv$TIME, rv$EVENT) ~ Variable, data = Data)
+      
+    }
+    else{
+      #otherwise, tell the actual model to include the missing matrix
+      Missing = Missing[,which(colSums(Missing)!= 0)]
+      rv$CoxModelActual = coxph(Surv(rv$TIME, rv$EVENT) ~ Variable + Missing, data = Data)
+      
+    } 
+    
+    #the reason to set another matrix is when calculating survival probability, the data in missing matrix will not be considered
+    rv$CoxModel = coxph(Surv(rv$TIME, rv$EVENT) ~ Variable, data = Data)
+    
+    
+    
+    #outputs
+    output$HelpModel = renderText("Generate the CoxModel fitted")
+    output$Model = renderPrint(summary(rv$CoxModelActual))
+    output$AIC = renderText({
+      paste("The AIC of this model is", round(AIC(rv$CoxModelActual), 2),
+            "and the BIC of this model is", round(bic(rv$CoxModelActual), 2))
+    })
+  })
+
+  
+  observeEvent(input$Back, {
+    rv$TIME= Data$SURVIVAL
+    rv$EVENT = Data$NDOBC
+    rv$CoxModelActual = coxph(Surv(rv$TIME, rv$EVENT) ~ ANY_MUT + NUNDER_50 
+                              + NT_STAGE + NNODE_ANY, data = Data)
+    rv$CoxModel = coxph(Surv(rv$TIME, rv$EVENT) ~ ANY_MUT + NUNDER_50 
+                        + NT_STAGE + NNODE_ANY, data = Data)
+    rv$var1 = "Mutation Status"
+    rv$var2 = "Age"
+    rv$var3 = "Tumor Stage"
+    rv$var4 = "Node Involvement"
+    rv$var5 = rv$var6 = rv$var7 = "NULL"
+    output$HelpModel = renderText("Generate the CoxModel fitted")
+    output$Model = renderPrint(summary(rv$CoxModelActual))
+    output$AIC = renderText({
+      paste("The AIC of this model is", round(AIC(rv$CoxModelActual), 2),
+            "and the BIC of this model is", round(bic(rv$CoxModelActual), 2))
+    })
+    
+  })
+  
+  #Output for same as Weibull
+  observeEvent(input$Back3, {
+    rv$var1 = rv$VAR1
+    rv$var2 = rv$VAR2
+    rv$var3 = rv$VAR3
+    rv$var4 = rv$VAR4
+    rv$var5 = rv$VAR5
+    rv$var6 = rv$VAR6
+    rv$var7 = rv$VAR7
+    
+    rv$TIME = rv$TIME1
+    rv$EVENT = rv$EVENT1
+    
+    #Create a matrix to account for every var without missing data
+    Variable = matrix(c(detect(rv$var1), detect(rv$var2), detect(rv$var3), detect(rv$var4), detect(rv$var5), 
+                        detect(rv$var6), detect(rv$var7)), nrow = 305)
+    #With missing data
+    Missing = matrix(c(detect4(rv$var1), detect4(rv$var2), detect4(rv$var3), detect4(rv$var4), detect4(rv$var5), 
+                       detect4(rv$var6), detect4(rv$var7)), nrow = 305)
+    
+    #tell the actual model not to include the missing matrix if the missing matrix is consisted of only 0s
+    if(all(colSums(Missing) == 0)) {
+      rv$CoxModelActual = coxph(Surv(rv$TIME, rv$EVENT) ~ Variable, data = Data)
+      
+    }
+    else{
+      #otherwise, tell the actual model to include the missing matrix
+      Missing[,which(colSums(Missing)== 0)] = NULL
+      rv$CoxModelActual = coxph(Surv(rv$TIME, rv$EVENT) ~ Variable + Missing, data = Data)
+      
+    } 
+    
+    #the reason to set another matrix is when calculating survival probability, the data in missing matrix will not be considered
+    rv$CoxModel = coxph(Surv(rv$TIME, rv$EVENT) ~ Variable, data = Data)
+    
+    zph = tail(as.vector(cox.zph(MS)$table[,"p"]), n= 1)
+    
+    if(zph<0.05){PH = "met."}
+    else{PH = "not met."}
+    
+    output$HelpModel = renderText("Generate the CoxModel fitted")
+    output$Model = renderPrint(summary(rv$CoxModelActual))
+    output$PH = renderText({
+      paste("The p-value of the PH assumption is", round(zph,2), 
+            "and thus the PH assumption of this model is", PH)
+    })
+    output$AIC = renderText({
+      paste("The AIC of this model is", round(AIC(rv$CoxModelActual), 2),
+            "and the BIC of this model is", round(bic(rv$CoxModelActual), 2))
+    })
+  })
+  
+  #Output for the second column, calculate one's specific survival probability
+  observeEvent(input$Generate, {
+    
+    A = rv$CoxModel
+
+    #use the baseline function (cumulative) provided in R
+    Baseline = basehaz(A)
+
+    t = as.numeric(input$t)
+
+  
+    x1 = as.numeric(input$x1)
+    x2 = as.numeric(input$x2)
+    x3 = as.numeric(input$x3)
+    x4 = as.numeric(input$x4)
+    x5 = as.numeric(input$x5)
+    x6 = as.numeric(input$x6)
+    x7 = as.numeric(input$x7)
+
+    slidermatrix = c(x1,x2,x3,x4,x5,x6,x7)
+    
+    #This matrix serve to create a matrix that can be multiplied to the beta matrix (coefficients)
+    #Ex: the user input Cox Model as: var1 = T-stage, var2 = mutation, var3 = ER; and choose slidermatrix be: 
+    #mutation = 0, t-stage = 1, ER = 1. Then slidermatrix will output: [0,0,1,0,1,0,0], and the ma function will 
+    #adjust the slidermatrix to output: [0,1,1] so that it matches the order of the variables input by the user in the first tab. 
+    #Thus, after extracting the coefficients from the cox model generated and store them into one betamatrix,
+    #We can directly multiply xmatrix and betamatrix to get the x\beta. 
+    xmatrix = c(0,0,0,0,0,0,0,0)
+    xmatrix = ma(rv$var1, xmatrix, 1, slidermatrix)
+    xmatrix = ma(rv$var2, xmatrix, 2, slidermatrix)
+    xmatrix = ma(rv$var3, xmatrix, 3, slidermatrix)
+    xmatrix = ma(rv$var4, xmatrix, 4, slidermatrix)
+    xmatrix = ma(rv$var5, xmatrix, 5, slidermatrix)
+    xmatrix = ma(rv$var6, xmatrix, 6, slidermatrix)
+    xmatrix = ma(rv$var7, xmatrix, 7, slidermatrix)
+    
+    #Generate the beta based on cox model
+    betamatrix = matrix(A$coefficients, ncol = 1)
+    #remove the zeros that extends the dimension of betamatrix
+    xmatrix = xmatrix[1:dim(betamatrix)]
+    
+    
+    t1 = as.numeric(input$t)
+
+    #the function to calcualtive the survaivl probaility
+    i = 0
+    while (i < nrow(Baseline)) {
+      if(t< Baseline[1,2]){
+        CumHaz = 0
+        break
+      }
+      else if(t >= Baseline[i,2] && t < Baseline[i+1, 2]) {
+        CumHaz = Baseline[i, 1]
+        break
+      }
+      i = i + 1
+    }
+    #Calculate S_o
+    Snull = exp(-CumHaz)
+
+    # Calculate S(T)
+    # First need to calculate x*\beta, x is "xmatrix" becuase x takes either 0 or 1,
+    # beta is betamatrix, which are the coefficients:
+    x = xmatrix
+    beta = betamatrix
+
+    expo = as.double(x%*%beta)
+
+    S = Snull^exp(expo)
+    
+    outcome = input$outcome
+
+
+    newS = as.double(unlist(S))
+    newS = round(100 * S, 2)
+    output$Result = renderText(paste("The estimated survival probability is: ", newS, "%", sep=""))
+    
+    st = 1
+    st = detect7(rv$var1, slidermatrix, st, 1)
+    print(st)
+    st = detect7(rv$var2, slidermatrix, st, 2) 
+    st = detect7(rv$var3, slidermatrix, st, 3) 
+    st = detect7(rv$var4, slidermatrix, st, 4) 
+    st = detect7(rv$var5, slidermatrix, st, 5) 
+    st = detect7(rv$var6, slidermatrix, st, 6) 
+    st = detect7(rv$var7, slidermatrix, st, 7)
+                   
+    output$HelpGraph = renderText(paste("The survival curve for patients who are", st, "is" ))
+    # output$Graph = renderPlot({
+    #   plot(Baseline[,2], exp(-Baseline[,1])^(exp(expo)), 
+    #        col="blue",main="Survival curve for a specific patient using Cox model",
+    #        xlab="Time (months)",ylab="S(t|X)", xlim = input$Length1, ylim = input$Height1)
+    #   abline(v=t1, lwd=1)
+    #   abline(h = c(0.5, 0.75), lty = 2)})
+    output$Graph = renderPlot({   
+      ggplot(data.frame(x = Baseline[,2], y = exp(-Baseline[,1])^(exp(expo))), 
+             aes(Baseline[,2], exp(-Baseline[,1])^(exp(expo)))) +
+        geom_line(size = 2, col = "#003366") +
+        geom_hline(yintercept = c(0.5, 0.75), linetype = "dashed") +
+        geom_vline(xintercept = t1, linetype = "dashed") +
+        xlim(input$Length1) +
+        ylim(input$Height1) +
+        labs(x = paste("Time to", outcome), y = "Survival Probability") +
+        theme(
+          plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 14),
+          panel.background = element_rect(fill = "white"),
+          panel.border = element_blank(), 
+          axis.line = element_line()
+        )
+    })
+    
+    output$Note = renderText(paste("The vertical line marks the time entered at the sidebar panel. Use the x and y axis at the side
+               to adjust the scale of the graph."))
+
+    output$YHei1 = renderUI({
+      sliderInput("Height1", "Y-axis Length", min = 0, max = 1, step = 0.05, value = c(0,1))
+    })
+    output$XLen1 = renderUI({
+      sliderInput("Length1", "X-axis Length", min = 0, max = 230, step = 1, value = c(0,230))
+    })
+    
+  
+    
+ })
+  
+
+  VAR3 = reactive({
+    if(input$VAR2 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  VAR4 = reactive({
+    if(input$VAR3 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  VAR5 = reactive({
+    if(input$VAR4 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  VAR6 = reactive({
+    if(input$VAR5 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  VAR7 = reactive({
+    if(input$VAR6 == "NULL"){"NULL"}
+    else{c("NULL", "Mutation Status", "Age", "Tumor Stage", "Node Involvement", 
+           "ER Status", "Chemotherapy", "Tamoxifen")}
+  })
+  
+  #Set the output to be as restricted above
+  output$V3 = renderUI({selectInput("VAR3", "Variable 3", VAR3())})
+  output$V4 = renderUI({selectInput("VAR4", "Variable 4", VAR4())})
+  output$V5 = renderUI({selectInput("VAR5", "Variable 5", VAR5())})
+  output$V6 = renderUI({selectInput("VAR6", "Variable 6", VAR6())})
+  output$V7 = renderUI({selectInput("VAR7", "Variable 7", VAR7())})
+  
+  #The output for Weibull and display the model
+  observeEvent(input$Fit2,{
+    rv$EVENT1 = detect1(input$outcome1)
+    rv$TIME1 = detect2(input$outcome1)
+    
+    rv$VAR1 = input$VAR1
+    rv$VAR2 = input$VAR2
+    rv$VAR3 = input$VAR3
+    rv$VAR4 = input$VAR4
+    rv$VAR5 = input$VAR5
+    rv$VAR6 = input$VAR6
+    rv$VAR7 = input$VAR7
+    
+    #Create a matrix to account for every var without missing data
+    VARIABLE = matrix(c(detect(rv$VAR1), detect(rv$VAR2), detect(rv$VAR3), detect(rv$VAR4), detect(rv$VAR5), 
+                        detect(rv$VAR6), detect(rv$VAR7)), nrow = 305)
+    
+    
+    #With missing data
+    MISSING = matrix(c(detect4(rv$VAR1), detect4(rv$VAR2), detect4(rv$VAR3), detect4(rv$VAR4), detect4(rv$VAR5), 
+                       detect4(rv$VAR6), detect4(rv$VAR7)), nrow = 305)
+    
+    #tell the actual model not to include the missing matrix if the missing matrix is consisted of only 0s
+    if(all(colSums(MISSING) == 0)) {
+      rv$WeibullActual = survreg(Surv(rv$TIME1, rv$EVENT1) ~ VARIABLE, data = Data)
+      
+    }
+    else{
+      #otherwise, tell the actual model to include the missing matrix
+      MISSING = MISSING[,which(colSums(MISSING)!= 0)]
+      rv$WeibullActual = survreg(Surv(rv$TIME1, rv$EVENT1) ~ VARIABLE + MISSING, data = Data)
+      
+    } 
+    
+    rv$WeibullModel = survreg(Surv(rv$TIME1, rv$EVENT1) ~ VARIABLE, data = Data)
+    
+    #outputs
+    output$HelpW = renderText("Fit the Weibull regression model")
+    output$ModelW = renderPrint(summary(rv$WeibullActual))
+    output$AIC1 = renderText({
+      paste("The AIC of this model is", round(AIC(rv$WeibullActual), 2),
+            "and the BIC of this model is", round(bic(rv$WeibullActual), 2))
+    })
+    
+  })
+  
+  #output for Weibull to set the default
+  observeEvent(input$Back1, {
+    rv$Time1 = Data$SURVIVAL
+    rv$Event1 = Data$NDOBC
+    rv$WeibullActual = survreg(Surv(rv$TIME1, rv$EVENT1) ~ ANY_MUT + NUNDER_50 
+                               + NT_STAGE + NNODE_ANY, data = Data)
+    rv$WeibullModel = survreg(Surv(rv$TIME1, rv$EVENT1) ~ ANY_MUT + NUNDER_50 
+                              + NT_STAGE + NNODE_ANY, data = Data)
+    rv$VAR1 = "Mutation Status"
+    rv$VAR2 = "Age"
+    rv$VAR3 = "Tumor Stage"
+    rv$VAR4 = "Node Involvement"
+    rv$VAR5 = VAR6 = VAR7 = "NULL"
+    output$HelpW = renderText("Fit the Weibull regression model")
+    output$ModelW = renderPrint(summary(rv$WeibullActual))
+    output$AIC1 = renderText({
+      paste("The AIC of this model is", round(AIC(rv$WeibullActual), 2),
+            "and the BIC of this model is", round(bic(rv$WeibullActual), 2))
+    })
+  } )
+  
+  #Make the vars same between Weibull and Cox Model
+  observeEvent(input$Back2, {
+    rv$TIME1 = rv$TIME
+    rv$EVENT1 = rv$EVENT
+    
+    
+    rv$VAR1 = rv$var1
+    rv$VAR2 = rv$var2
+    rv$VAR3 = rv$var3
+    rv$VAR4 = rv$var4
+    rv$VAR5 = rv$var5
+    rv$VAR6 = rv$var6
+    rv$VAR7 = rv$var7
+    
+    #Create a matrix to account for every var without missing data
+    VARIABLE = matrix(c(detect(rv$VAR1), detect(rv$VAR2), detect(rv$VAR3), detect(rv$VAR4), detect(rv$VAR5), 
+                        detect(rv$VAR6), detect(rv$VAR7)), nrow = 305)
+    
+    
+    #With missing data
+    MISSING = matrix(c(detect4(rv$VAR1), detect4(rv$VAR2), detect4(rv$VAR3), detect4(rv$VAR4), detect4(rv$VAR5), 
+                       detect4(rv$VAR6), detect4(rv$VAR7)), nrow = 305)
+    
+    #tell the actual model not to include the missing matrix if the missing matrix is consisted of only 0s
+    if(all(colSums(MISSING) == 0)) {
+      rv$WeibullActual = survreg(Surv(rv$TIME1, rv$EVENT1) ~ VARIABLE, data = Data)
+      
+    }
+    else{
+      #otherwise, tell the actual model to include the missing matrix
+      MISSING = MISSING[,which(colSums(MISSING)!= 0)]
+      rv$WeibullActual = survreg(Surv(rv$TIME1, rv$EVENT1) ~ VARIABLE + MISSING, data = Data)
+      
+    } 
+    rv$WeibullModel = survreg(Surv(rv$TIME1, rv$EVENT1) ~ VARIABLE, data = Data)
+    
+    #outputs
+    output$HelpW = renderText("Fit the Weibull regression model")
+    output$ModelW = renderPrint(summary(rv$WeibullActual))
+    output$AIC1 = renderText({
+      paste("The AIC of this model is", round(AIC(rv$WeibullActual), 2),
+            "and the BIC of this model is", round(bic(rv$WeibullActual), 2))
+    })
+
+  })
+  
+  observeEvent(input$Generate1, {
+    WB = rv$WeibullModel
+
+    Gamma = 1/WB$scale
+    #[-1] is to not include the intercept which is output as the first element of the coefficients
+    #make it into a matrix to be later multiplied by x matrix
+    Beta = matrix(WB$coefficients[-1], ncol = 1)
+    BetaStar = -Beta/Gamma
+    
+    
+    X1 = as.numeric(input$X1)
+    X2 = as.numeric(input$X2)
+    X3 = as.numeric(input$X3)
+    X4 = as.numeric(input$X4)
+    X5 = as.numeric(input$X5)
+    X6 = as.numeric(input$X6)
+    X7 = as.numeric(input$X7)
+    
+    slidermatrix = c(X1,X2,X3,X4,X5,X6,X7)
+    
+    xmatrix = c(0,0,0,0,0,0,0,0)
+    xmatrix = ma(rv$VAR1, xmatrix, 1, slidermatrix)
+    xmatrix = ma(rv$VAR2, xmatrix, 2, slidermatrix)
+    xmatrix = ma(rv$VAR3, xmatrix, 3, slidermatrix)
+    xmatrix = ma(rv$VAR4, xmatrix, 4, slidermatrix)
+    xmatrix = ma(rv$VAR5, xmatrix, 5, slidermatrix)
+    xmatrix = ma(rv$VAR6, xmatrix, 6, slidermatrix)
+    xmatrix = ma(rv$VAR7, xmatrix, 7, slidermatrix)
+    xmatrix = matrix(xmatrix, nrow = 1)
+    xmatrix = xmatrix[,1:nrow(BetaStar)]
+    
+    
+    Expo = as.vector(exp(xmatrix %*% BetaStar))
+    
+    Intercept = as.vector(WB$coefficients[1]) #get the intercept
+    Alpha = exp(-Intercept*Gamma)
+    
+    Time = as.numeric(input$tt)
+    
+    S = exp(- Alpha * (Time^Gamma) * Expo)
+
+    newS = round(S*100, 2)
+    output$Result1 = renderText(paste("The estimated survival probability is", newS, "%"))
+    
+
+    output$HelpGraph1 = renderText(paste("The survival curve for patients who are", detect7(rv$VAR1, slidermatrix), 
+                                         detect7(rv$VAR2, slidermatrix), detect7(rv$VAR3, slidermatrix), 
+                                         detect7(rv$VAR4, slidermatrix), detect7(rv$VAR5, slidermatrix), 
+                                         detect7(rv$VAR6, slidermatrix), detect7(rv$VAR7, slidermatrix), "is")) 
+    
+    func = function(x){
+      exp(- Alpha * (x^Gamma) * Expo)
+    }
+    
+    
+    #Set this to customize the xlab, do not use input$outcome1 directly to hold the axis 
+    #unchanged when the user put in new outcome before pressing actionbutton
+    outcome = input$outcome1
+    output$Graph01 = renderPlot({
+      plot(t, 1-pweibull(t, Gamma, exp(Intercept)))
+    })
+    
+    output$Graph1 = renderPlot({
+      ggplot(data.frame(x = c(0,230)), aes(x = x)) + 
+        stat_function(fun = func, size = 1.5, col = "#003366") +
+        labs(x = paste("Time to", outcome), y = "Survival Probability") +
+        xlim(input$Length2) +
+        ylim(input$Height2) +
+        geom_hline(yintercept = c(0.5, 0.75), linetype = "dashed") +
+        geom_vline(xintercept = Time, linetype = "dashed") +
+        theme(
+          plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 14),
+          panel.background = element_rect(fill = "white"),
+          panel.border = element_blank(), 
+          axis.line = element_line()
+        )
+    })
+    
+    output$Note1 = renderText(paste("The vertical line marks the time entered at the sidebar panel. Use the x and y axis at the side
+               to adjust the scale of the graph."))
+
+    output$YHei2 = renderUI({
+      sliderInput("Height2", "Y-axis Length", min = 0, max = 1, step = 0.05, value = c(0,1))
+    })
+    output$XLen2 = renderUI({
+      sliderInput("Length2", "X-axis Length", min = 0, max = 230, step = 1, value = c(0,230))
+    })
+  })
+}  
+
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+
 
