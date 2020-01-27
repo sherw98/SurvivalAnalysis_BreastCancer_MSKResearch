@@ -6,7 +6,7 @@ This project was complted in 2019 Summer at Memorial Sloan Kettering under the g
 Full App
 
 This is the full app that needs the supplement of data owned by Memorial Sloan Kettering. Therefore, by itself, it does not work. 
-However the example output is shown in the pdfs in the file called "Smaple Output". 
+However the example output is shown in the pdfs in this same folder. 
 
 There are four tabs in the app. 
 
