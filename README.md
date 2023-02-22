@@ -25,13 +25,13 @@ While BRCA1/2 mutation carriers tended to have lower breast cancer-specific surv
 
 
 **************************************************************
-### RShiny App
+## RShiny App
 
 An RShiny app was built to output KM curves and interactively predict patient prognosis using different regressino models. Please see details in the RShiny_App folder. 
 
 *******************************************************************
 
-### Simplified RShiny App
+## Simplified RShiny App
 
 This app is a simplified version of the Full App. It is not built on the original patient data. The app is uploaded to the RShiny server: https://sherw98.shinyapps.io/SurvivalProbability/. 
 In the model, the independent variables are mutation status, age, tumor stage, and number of nodes, while the dependent variable could be selected by users among the 7 potential outcomes. 
