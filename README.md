@@ -2,7 +2,7 @@
 
 ## Presentation
 
-This project was completed in 2019 Summer at Memorial Sloan Kettering under the guidance of Dr. Jaya Satagopan. The final presentation is in presentation.pdf, and can also be found here: https://drive.google.com/file/d/11t1bamY9APsyUwnyksTTG2D1ACbsOBDV/view?usp=sharing 
+This project was completed in 2019 Summer at Memorial Sloan Kettering under the guidance of Dr. Jaya Satagopan. The final presentation is in *presentation.pdf*, and can also be found here: https://drive.google.com/file/d/11t1bamY9APsyUwnyksTTG2D1ACbsOBDV/view?usp=sharing 
 
 **************************************************************
 ## Project Abstract
@@ -17,7 +17,11 @@ The data used is from the published study of Robson et al. (1999). This study in
 
 ### Results: 
 
-Among the 305 patients, 28 (9%) were found to have at least one of the three mutations. Mutation carriers were more likely to be diagnosed with breast cancer before the age of 50 (P < 0.001) and were more likely to have at least one lymph node involvement (P = 0.04). Six outcomes were examined, namely ipsilateral recurrence, contralateral recurrence, distant recurrence, breast cancer-specific survival, disease-free survival, and overall survival. The main analysis focused on breast cancer-specific survival. Mutation carriers had lower breast cancerspecific survival probability (10-year Kaplan Meier survival probability = 62.4%) compared to non-mutation carriers (10-year Kaplan Meier survival probability = 86.4%; log-rank test P = 0.01). In a multivariate Cox proportional hazards regression model including mutation status, age of diagnosis, tumor stage, and node involvement, only tumor stage was significantly associated with breast cancer-specific survival (HR = 2.45, 95% CI = 1.23-4.87, P = 0.01). The R Shiny app for estimating breast cancer-specific survival probability is available from the author. 
+Among the 305 patients, 28 (9%) were found to have at least one of the three mutations. Mutation carriers were more likely to be diagnosed with breast cancer before the age of 50 (P < 0.001) and were more likely to have at least one lymph node involvement (P = 0.04). Six outcomes were examined, namely ipsilateral recurrence, contralateral recurrence, distant recurrence, breast cancer-specific survival, disease-free survival, and overall survival. The main analysis focused on breast cancer-specific survival. Mutation carriers had lower breast cancerspecific survival probability (10-year Kaplan Meier survival probability = 62.4%) compared to non-mutation carriers (10-year Kaplan Meier survival probability = 86.4%; log-rank test P = 0.01). In a multivariate Cox proportional hazards regression model including mutation status, age of diagnosis, tumor stage, and node involvement, only tumor stage was significantly associated with breast cancer-specific survival (HR = 2.45, 95% CI = 1.23-4.87, P = 0.01). 
+
+The *RShiny app* for estimating breast cancer-specific survival probability is available from the author. 
+
+The combined final results can be seen in *results.pdf*
 
 ### Conclusions: 
 
