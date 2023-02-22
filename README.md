@@ -11,6 +11,8 @@ This project was completed in 2019 Summer at Memorial Sloan Kettering under the 
 
 The prognosis of breast cancer patients with BRCA1/BRCA2 mutations after undergoing breast conservation therapy (BCT) remains inconsistent across different studies. This study aims to analyze the roles of BRCA1/2 mutations and other factors on Ashkenazi Jewish breast cancer patients’ prognosis after they had undergone BCT. 
 
+Please see other relevant works in *Literature Reveiw.pdf*
+
 ### Method: 
 
 The data used is from the published study of Robson et al. (1999). This study included 305 Ashkenazi Jewish patients with invasive breast cancer who had underwent BCT at Memorial Sloan Kettering Cancer Center (MSK). Each patient was tested for three specific types of BRCA1/2 mutations which were reported only in Ashkenazi Jewish individuals. An R Shinny app was developed to estimate the probability of surviving up to a certain time using usersupplied values of mutation status, time of diagnosis, and other potential risk factors. 
